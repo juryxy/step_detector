@@ -11,6 +11,7 @@ A simple matlab GUI for manual interval or time point selection (i.e. for manual
 |===================================================================|
  
        			Created by Juergen Dukart
+          To report bugs or for any questions about the tool you can contact me at juergen.dukart@gmail.com
           Please cite this tool as:
           
 Dukart, Juergen (2021). A manual step_detector for Matlab. https://github.com/juryxy/step_detector
