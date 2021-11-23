@@ -1,5 +1,5 @@
 # step_detector
-A simple matlab GUI for manual interval or time point selection (i.e. for manual step detection)
+A simple matlab GUI for manual interval or time point labeling (i.e. for manual step detection)
 |===================================================================|
 |                        WELCOME to Step_detector
 |                                                                   |
