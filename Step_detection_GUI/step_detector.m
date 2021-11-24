@@ -226,7 +226,7 @@ end
 plot(handles.axes2,[xyz],'-','color',tt(end,:));
 hold(handles.axes2,'on');
 ylabel(handles.axes1,'Raw data');
-ylabel(handles.axes2,'sqrt(sum(columns)^2)');
+ylabel(handles.axes2,'sqrt(sum(data^2))');
 zoom(handles.axes2,'on');
 h = zoom;
 setAllowAxesZoom(h,handles.axes1,false);
@@ -345,7 +345,7 @@ end
 plot(handles.axes2,[data_all.xyz],'-','color',data_all.tt(end,:));
 hold(handles.axes2,'on');
 ylabel(handles.axes1,'Raw data');
-ylabel(handles.axes2,'sqrt(sum(columns)^2)');
+ylabel(handles.axes2,'sqrt(sum(data^2))');
 for i = 1:length(data_all.start_val_all)
 pch1 = patch(handles.axes2, [data_all.start_val_all(i),data_all.stop_val_all(i),data_all.stop_val_all(i), data_all.start_val_all(i)], [y_lim(1) y_lim(1) y_lim(2) y_lim(2)], 'r', ...
     'EdgeColor', 'none', 'FaceAlpha', 0.3);
