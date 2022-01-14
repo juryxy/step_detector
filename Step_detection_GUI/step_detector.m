@@ -22,7 +22,7 @@ function varargout = step_detector(varargin)
 
 % Edit the above text to modify the response to help step_detector
 
-% Last Modified by GUIDE v2.5 23-Nov-2021 20:00:38
+% Last Modified by GUIDE v2.5 10-Dec-2021 09:27:43
 
 % Begin initialization code - DO NOT EDIT
 % Written by Juergen Dukart, 23.11.2021
@@ -180,9 +180,19 @@ function load_file_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 [filename, pathname] = uigetfile('.csv');
 full_path = fullfile(pathname,filename);
+[path,filename] = fileparts(full_path);
 set(handles.file_loaded,'String', full_path);
 data = csvread_my(full_path,';');
 data_n = cell2num_my(data(2:end,:));
+
+% try
+%     full_path_gyro = regexprep(full_path,'accelerometer','gyroscope');
+%     data_gyro = csvread_my(full_path_gyro,';');
+%     data_n_gyro = cell2num_my(data_gyro(2:end,:));
+% catch
+%     disp('Gyroscope data not found');
+% end
+
 
 if size(data_n,2)>3
     N = 3;
@@ -203,6 +213,9 @@ if opt_filter
     
     for i = 1:N
        data_n(:,i) = filter_my(data_n(:,i),lowPassfilter,highPassfilter,frequency);
+%        if exist('data_n_gyro','var')
+%            data_n_gyro(:,i) = filter_my(data_n_gyro(:,i),lowPassfilter,highPassfilter,frequency);
+%        end
     end
 end
 
@@ -221,6 +234,10 @@ end
 for i = 1:N
     plot(handles.axes1,data_n(:,i),'-','color',tt(i,:));
     hold(handles.axes1,'on');
+%     if exist('data_n_gyro','var')
+%          plot(handles.axes3,data_n_gyro(:,i),'-','color',tt(i,:));
+%          hold(handles.axes3,'on');
+%     end
 end
 
 plot(handles.axes2,[xyz],'-','color',tt(end,:));
@@ -233,17 +250,21 @@ setAllowAxesZoom(h,handles.axes1,false);
 x_lim = xlim(handles.axes2);
 y_lim = ylim(handles.axes2);
 y_lim2 = ylim(handles.axes1);
+% y_lim3 = ylim(handles.axes3);
 global data_all;
 data_all.data_n = data_n;
+% data_all.data_n_gyro = data_n_gyro;
 data_all.xyz = xyz;
 data_all.tt = tt;
 data_all.x_lim = x_lim;
 data_all.y_lim = y_lim;
 data_all.y_lim2 = y_lim2;
+% data_all.y_lim3 = y_lim3;
 data_all.start_val_all = [];
 data_all.stop_val_all = [];
 data_all.step_all = [];
 data_all.full_path = full_path;
+data_all.filename = filename;
 
 
 
@@ -330,6 +351,9 @@ y_lim = data_all.y_lim;
 y_lim2 = data_all.y_lim2;
 hold(handles.axes1,'off');
 hold(handles.axes2,'off');
+% if exist(data_all.data_n_gyro,'var')
+%     hold(handles.axes3,'off');
+% end
 
 if size(data_all.data_n,2)>3
     N = 3;
@@ -340,6 +364,10 @@ end
 for i = 1:N
     plot(handles.axes1,data_all.data_n(:,i),'-','color',data_all.tt(i,:));
     hold(handles.axes1,'on');
+%     if exist(data_all.data_n_gyro,'var')
+%         plot(handles.axes3,data_all.data_n_gyro(:,i),'-','color',data_all.tt(i,:));
+%         hold(handles.axes3,'on');
+%     end
 end
 
 plot(handles.axes2,[data_all.xyz],'-','color',data_all.tt(end,:));
@@ -351,14 +379,23 @@ pch1 = patch(handles.axes2, [data_all.start_val_all(i),data_all.stop_val_all(i),
     'EdgeColor', 'none', 'FaceAlpha', 0.3);
 pch1 = patch(handles.axes1, [data_all.start_val_all(i),data_all.stop_val_all(i),data_all.stop_val_all(i), data_all.start_val_all(i)], [y_lim2(1) y_lim2(1) y_lim2(2) y_lim2(2)], 'r', ...
     'EdgeColor', 'none', 'FaceAlpha', 0.3);
+%     if exist(data_all.data_n_gyro,'var')
+%         pch1 = patch(handles.axes3, [data_all.start_val_all(i),data_all.stop_val_all(i),data_all.stop_val_all(i), data_all.start_val_all(i)], [y_lim3(1) y_lim3(1) y_lim3(2) y_lim3(2)], 'r', ...
+%         'EdgeColor', 'none', 'FaceAlpha', 0.3);
+%     end
 end
 
 for j = 1:length(data_all.step_all)
    plot(handles.axes2,data_all.step_all(j),data_all.xyz(data_all.step_all(j)),'o','MarkerFaceColor','green','color','green');
-    plot(handles.axes1,data_all.step_all(j),y_lim2(2),'o','MarkerFaceColor','green','color','green');
+   plot(handles.axes1,data_all.step_all(j),y_lim2(2),'o','MarkerFaceColor','green','color','green');
+%     if exist(data_all.data_n_gyro,'var')
+%         plot(handles.axes3,data_all.step_all(j),y_lim3(2),'o','MarkerFaceColor','green','color','green');
+%     end
 end
 h = zoom;
 setAllowAxesZoom(h,handles.axes1,false);
+% setAllowAxesZoom(h,handles.axes3,false);
+
 
 % --- Executes on button press in export_results.
 function export_results_Callback(hObject, eventdata, handles)
@@ -366,12 +403,20 @@ function export_results_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global data_all;
+dir_save = get(handles.dir_save,'String');%uigetdir();
+
+try
 step_all = ['Step_indices'; num2cell_my(data_all.step_all')];
+cell2csv(fullfile(dir_save,[data_all.filename '_step_labels.csv']),step_all);
+end
+
+try
 remove_all = [{'Remove_start' 'Remove_stop'}; num2cell_my([data_all.start_val_all data_all.stop_val_all])];
-save_name = char(inputdlg({'Enter the file name to save the results'},'',[1 35]));
-dir_save = uigetdir();
-cell2csv(fullfile(dir_save,[save_name '_step_all.csv']),step_all);
-cell2csv(fullfile(dir_save,[save_name '_remove_all.csv']),remove_all);
+cell2csv(fullfile(dir_save,[data_all.filename '_remove_labels.csv']),remove_all);
+end
+% save_name = char(inputdlg({'Enter the file name to save the results'},'',[1 35]));
+
+
 
 % F = getframe(handles.axes2);
 % Image = frame2im(F);
@@ -380,7 +425,7 @@ cell2csv(fullfile(dir_save,[save_name '_remove_all.csv']),remove_all);
 fig2 = figure('visible','off');
 newax = copyobj(handles.axes2,fig2);
 hLeg = legend(handles.axes2,'Signal');
-print(fig2,fullfile(dir_save,[save_name '_data_vis.png']),'-dpng','-r300');
+print(fig2,fullfile(dir_save,[data_all.filename '_data_vis.png']),'-dpng','-r300');
 close(fig2);
 
 
@@ -517,3 +562,169 @@ function edit8_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+
+function dir_save_Callback(hObject, eventdata, handles)
+% hObject    handle to dir_save (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of dir_save as text
+%        str2double(get(hObject,'String')) returns contents of dir_save as a double
+
+% --- Executes during object creation, after setting all properties.
+function dir_save_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to dir_save (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in select_dir_save.
+function select_dir_save_Callback(hObject, eventdata, handles)
+% hObject    handle to select_dir_save (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+dir_save = uigetdir(cd, 'Select directory to save data');
+set(handles.dir_save,'String', dir_save);
+
+
+function [data_num] = cell2num_my(data)
+
+        tt = isemptycell(data);
+        data(tt==1)= {'NaN'};
+
+% [r,c]=ind2sub(size(data), strmatch('NA', data, 'exact'));
+m = size(data);
+% 
+% for l = 1:length(r)
+% data{r(l),c(l)}='-4';
+% end
+
+data_num = zeros(m(1),m(2));
+
+if isstr(data{1,1})
+for i=1:m(1)
+%     disp(i);
+    for j=1:m(2)
+        data_num(i,j) = str2double(data{i,j});
+    end
+end
+else
+  for i=1:m(1)
+%     disp(i);
+    for j=1:m(2)
+        data_num(i,j) = data{i,j};
+    end
+  end
+end
+
+function E = isemptycell(C)
+% ISEMPTYCELL Apply the isempty function to each element of a cell array
+% E = isemptycell(C)
+%
+% This is equivalent to E = cellfun('isempty', C),
+% where cellfun is a function built-in to matlab version 5.3 or newer.
+
+if 0 % all(version('-release') >= 12)
+  E = cellfun('isempty', C);
+else
+  E = zeros(size(C));
+  for i=1:prod(size(C))
+    E(i) = isempty(C{i});
+  end
+  E = logical(E);
+end
+
+
+function cell2csv(fileName, cellArray, separator, excelYear, decimal)
+% Writes cell array content into a *.csv file.
+% 
+% CELL2CSV(fileName, cellArray, separator, excelYear, decimal)
+%
+% fileName     = Name of the file to save. [ i.e. 'text.csv' ]
+% cellArray    = Name of the Cell Array where the data is in
+% separator    = sign separating the values (default = ';')
+% excelYear    = depending on the Excel version, the cells are put into
+%                quotes before they are written to the file. The separator
+%                is set to semicolon (;)
+% decimal      = defines the decimal separator (default = '.')
+%
+%         by Sylvain Fiedler, KA, 2004
+% updated by Sylvain Fiedler, Metz, 06
+% fixed the logical-bug, Kaiserslautern, 06/2008, S.Fiedler
+% added the choice of decimal separator, 11/2010, S.Fiedler
+
+%% Checking für optional Variables
+if ~exist('separator', 'var')
+    separator = ';';
+end
+
+if ~exist('excelYear', 'var')
+    excelYear = 1997;
+end
+
+if ~exist('decimal', 'var')
+    decimal = '.';
+end
+
+%% Setting separator for newer excelYears
+if excelYear > 2000
+    separator = ';';
+end
+
+%% Write file
+datei = fopen(fileName, 'w');
+
+for z=1:size(cellArray, 1)
+    for s=1:size(cellArray, 2)
+        
+        var = eval(['cellArray{z,s}']);
+        % If zero, then empty cell
+        if size(var, 1) == 0
+            var = '';
+        end
+        % If numeric -> String
+        if isnumeric(var)
+            var = num2str(var);
+            % Conversion of decimal separator (4 Europe & South America)
+            % http://commons.wikimedia.org/wiki/File:DecimalSeparator.svg
+            if decimal ~= '.'
+                var = strrep(var, '.', decimal);
+            end
+        end
+        % If logical -> 'true' or 'false'
+        if islogical(var)
+            if var == 1
+                var = 'TRUE';
+            else
+                var = 'FALSE';
+            end
+        end
+        % If newer version of Excel -> Quotes 4 Strings
+        if excelYear > 2000
+            var = ['"' var '"'];
+        end
+        
+        % OUTPUT value
+        fprintf(datei, '%s', var);
+        
+        % OUTPUT separator
+        if s ~= size(cellArray, 2)
+            fprintf(datei, separator);
+        end
+    end
+    if z ~= size(cellArray, 1) % prevent a empty line at EOF
+        % OUTPUT newline
+        fprintf(datei, '\n');
+    end
+end
+% Closing file
+fclose(datei);
+% END
