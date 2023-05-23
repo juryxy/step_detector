@@ -185,13 +185,15 @@ set(handles.file_loaded,'String', full_path);
 data = csvread_my(full_path,';');
 data_n = cell2num_my(data(2:end,:));
 
-% try
-%     full_path_gyro = regexprep(full_path,'accelerometer','gyroscope');
-%     data_gyro = csvread_my(full_path_gyro,';');
-%     data_n_gyro = cell2num_my(data_gyro(2:end,:));
-% catch
-%     disp('Gyroscope data not found');
-% end
+try
+    full_path_gyro = regexprep(full_path,'accelerometer.csv','gyroscope.csv');
+    data_gyro = csvread_my(full_path_gyro,';');
+    data_n_gyro = cell2num_my(data_gyro(2:end,:));
+    index_gyro = find_closest_values(data_n_gyro(:,4),data_n(:,4));
+    data_n_gyro = data_n_gyro(index_gyro,:);
+catch
+    disp('Gyroscope data not found');
+end
 
 
 if size(data_n,2)>3
@@ -213,17 +215,23 @@ if opt_filter
     
     for i = 1:N
        data_n(:,i) = filter_my(data_n(:,i),lowPassfilter,highPassfilter,frequency);
-%        if exist('data_n_gyro','var')
-%            data_n_gyro(:,i) = filter_my(data_n_gyro(:,i),lowPassfilter,highPassfilter,frequency);
-%        end
+       disp(mean(data_n));
+       if exist('data_n_gyro','var')
+           data_n_gyro(:,i) = filter_my(data_n_gyro(:,i),lowPassfilter,highPassfilter,frequency);
+       end
     end
 end
 
 
 
 xyz = sqrt(sum(data_n(:,1:N)'.^2)');
+try
+data_n_gyro = sqrt(sum(data_n_gyro(:,1:N)'.^2)');
+end
+
 hold(handles.axes1,'off');
 hold(handles.axes2,'off');
+hold(handles.axes3,'off');
 if size(data_n,2)>3
     tt = generate_colors_nice_my(4);
 else
@@ -234,15 +242,19 @@ end
 for i = 1:N
     plot(handles.axes1,data_n(:,i),'-','color',tt(i,:));
     hold(handles.axes1,'on');
-%     if exist('data_n_gyro','var')
+%         if exist('data_n_gyro','var')
 %          plot(handles.axes3,data_n_gyro(:,i),'-','color',tt(i,:));
 %          hold(handles.axes3,'on');
 %     end
 end
 
-plot(handles.axes2,[xyz],'-','color',tt(end,:));
+         plot(handles.axes3,data_n_gyro,'-','color',tt(1,:));
+         hold(handles.axes3,'on');
+
+plot(handles.axes2,xyz,'-','color',tt(end,:));
 hold(handles.axes2,'on');
-ylabel(handles.axes1,'Raw data');
+ylabel(handles.axes1,'Accelerometer');
+ylabel(handles.axes3,'Gyroscope');
 ylabel(handles.axes2,'sqrt(sum(data^2))');
 zoom(handles.axes2,'on');
 h = zoom;
@@ -250,16 +262,17 @@ setAllowAxesZoom(h,handles.axes1,false);
 x_lim = xlim(handles.axes2);
 y_lim = ylim(handles.axes2);
 y_lim2 = ylim(handles.axes1);
-% y_lim3 = ylim(handles.axes3);
+y_lim3 = ylim(handles.axes3);
 global data_all;
 data_all.data_n = data_n;
-% data_all.data_n_gyro = data_n_gyro;
+data_all.data_n_gyro = data_n_gyro;
+% data_all.data_n_gyro_f = data_n_gyro_f;
 data_all.xyz = xyz;
 data_all.tt = tt;
 data_all.x_lim = x_lim;
 data_all.y_lim = y_lim;
 data_all.y_lim2 = y_lim2;
-% data_all.y_lim3 = y_lim3;
+data_all.y_lim3 = y_lim3;
 data_all.start_val_all = [];
 data_all.stop_val_all = [];
 data_all.step_all = [];
@@ -349,11 +362,12 @@ global data_all;
 
 y_lim = data_all.y_lim;
 y_lim2 = data_all.y_lim2;
+y_lim3 = data_all.y_lim3;
 hold(handles.axes1,'off');
 hold(handles.axes2,'off');
-% if exist(data_all.data_n_gyro,'var')
-%     hold(handles.axes3,'off');
-% end
+if isfield(data_all,'data_n_gyro')
+    hold(handles.axes3,'off');
+end
 
 if size(data_all.data_n,2)>3
     N = 3;
@@ -364,37 +378,41 @@ end
 for i = 1:N
     plot(handles.axes1,data_all.data_n(:,i),'-','color',data_all.tt(i,:));
     hold(handles.axes1,'on');
-%     if exist(data_all.data_n_gyro,'var')
+%     if isfield(data_all,'data_n_gyro')
 %         plot(handles.axes3,data_all.data_n_gyro(:,i),'-','color',data_all.tt(i,:));
 %         hold(handles.axes3,'on');
 %     end
 end
 
+        plot(handles.axes3,data_all.data_n_gyro,'-','color',data_all.tt(1,:));
+        hold(handles.axes3,'on');
+
 plot(handles.axes2,[data_all.xyz],'-','color',data_all.tt(end,:));
 hold(handles.axes2,'on');
-ylabel(handles.axes1,'Raw data');
+ylabel(handles.axes1,'accelerometer');
+ylabel(handles.axes3,'gyroscope');
 ylabel(handles.axes2,'sqrt(sum(data^2))');
 for i = 1:length(data_all.start_val_all)
 pch1 = patch(handles.axes2, [data_all.start_val_all(i),data_all.stop_val_all(i),data_all.stop_val_all(i), data_all.start_val_all(i)], [y_lim(1) y_lim(1) y_lim(2) y_lim(2)], 'r', ...
     'EdgeColor', 'none', 'FaceAlpha', 0.3);
 pch1 = patch(handles.axes1, [data_all.start_val_all(i),data_all.stop_val_all(i),data_all.stop_val_all(i), data_all.start_val_all(i)], [y_lim2(1) y_lim2(1) y_lim2(2) y_lim2(2)], 'r', ...
     'EdgeColor', 'none', 'FaceAlpha', 0.3);
-%     if exist(data_all.data_n_gyro,'var')
-%         pch1 = patch(handles.axes3, [data_all.start_val_all(i),data_all.stop_val_all(i),data_all.stop_val_all(i), data_all.start_val_all(i)], [y_lim3(1) y_lim3(1) y_lim3(2) y_lim3(2)], 'r', ...
-%         'EdgeColor', 'none', 'FaceAlpha', 0.3);
-%     end
+    if isfield(data_all,'data_n_gyro')
+        pch1 = patch(handles.axes3, [data_all.start_val_all(i),data_all.stop_val_all(i),data_all.stop_val_all(i), data_all.start_val_all(i)], [y_lim3(1) y_lim3(1) y_lim3(2) y_lim3(2)], 'r', ...
+        'EdgeColor', 'none', 'FaceAlpha', 0.3);
+    end
 end
 
 for j = 1:length(data_all.step_all)
    plot(handles.axes2,data_all.step_all(j),data_all.xyz(data_all.step_all(j)),'o','MarkerFaceColor','green','color','green');
    plot(handles.axes1,data_all.step_all(j),y_lim2(2),'o','MarkerFaceColor','green','color','green');
-%     if exist(data_all.data_n_gyro,'var')
-%         plot(handles.axes3,data_all.step_all(j),y_lim3(2),'o','MarkerFaceColor','green','color','green');
-%     end
+    if isfield(data_all,'data_n_gyro')
+        plot(handles.axes3,data_all.step_all(j),y_lim3(2),'o','MarkerFaceColor','green','color','green');
+    end
 end
 h = zoom;
 setAllowAxesZoom(h,handles.axes1,false);
-% setAllowAxesZoom(h,handles.axes3,false);
+setAllowAxesZoom(h,handles.axes3,false);
 
 
 % --- Executes on button press in export_results.
